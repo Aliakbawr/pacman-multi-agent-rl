@@ -31,6 +31,7 @@ def scoreEvaluationFunction(currentGameState: GameState):
     if min([manhattanDistance(newPos, ghost) for ghost in newGhostPositions]) < 3:
         score -= 10
 
+    # If ghosts are away and there is food, run to the food
     if all(manhattanDistance(newPos, ghost) > 5 for ghost in newGhostPositions):
         distancesToFood = [manhattanDistance(newPos, food) for food in newFood]
         if distancesToFood:
