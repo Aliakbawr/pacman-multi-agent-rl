@@ -14,8 +14,8 @@
 
 from util import manhattanDistance
 from game import Directions
-import random, util
-
+import random
+import util
 from game import Agent
 from pacman import GameState
 
@@ -27,11 +27,13 @@ def scoreEvaluationFunction(currentGameState: GameState):
 
     This evaluation function is meant for use with adversarial search agents
     """
+
     return currentGameState.getScore()
 
 
 class MultiAgentSearchAgent(Agent):
     def __init__(self, evalFn="scoreEvaluationFunction", depth="2", time_limit="6"):
+        super().__init__()
         self.index = 0  # Pacman is always agent index 0
         self.evaluationFunction = util.lookup(evalFn, globals())
         self.depth = int(depth)
@@ -54,11 +56,59 @@ class AIAgent(MultiAgentSearchAgent):
         Returns the total number of agents in the game
 
         gameState.isWin():
-        Returns whether or not the game state is a winning state
+        Returns whether the game state is a winning state
 
         gameState.isLose():
-        Returns whether or not the game state is a losing state
+        Returns whether the game state is a losing state
         """
 
         # TODO: Your code goes here
+        def maxValue(gameState, depth, agentIndex, alpha, beta):
+            if gameState.isWin() or gameState.isLose() or depth == self.depth:
+                return self.evaluationFunction(gameState)
+            value = -float("inf")
+            for action in gameState.getLegalActions(agentIndex):
+                if action == "Stop":
+                    continue
+                print(f'action={action}')
+                value = max(value, minValue(gameState.generateSuccessor(agentIndex, action),
+                                            depth, agentIndex + 1, alpha, beta))
+                if value > beta:
+                    return value
+                alpha = max(alpha, value)
+            return value
+
+        def minValue(gameState, depth, agentIndex, alpha, beta):
+            if gameState.isWin() or gameState.isLose():
+                return self.evaluationFunction(gameState)
+            value = float("inf")
+            for action in gameState.getLegalActions(agentIndex):
+                if action == "Stop":
+                    continue
+                if agentIndex == gameState.getNumAgents() - 1:
+                    value = min(value, maxValue(gameState.generateSuccessor(agentIndex, action),
+                                                depth + 1, 0, alpha, beta))
+                else:
+                    value = min(value, minValue(gameState.generateSuccessor(agentIndex, action),
+                                                depth, agentIndex + 1, alpha, beta))
+                if value < alpha:
+                    return value
+                beta = min(beta, value)
+            return value
+
+        alpha = -float("inf")
+        beta = float("inf")
+        bestScore = -float("inf")
+        bestAction = Directions.STOP
+        for action in gameState.getLegalActions(0):
+            if action == "Stop":
+                continue
+            ghostValue = minValue(gameState.generateSuccessor(0, action), 0, 1, alpha, beta)
+            if ghostValue > bestScore:
+                bestScore = ghostValue
+                bestAction = action
+            if bestScore > beta:
+                return bestAction
+            alpha = max(alpha, bestScore)
+        return bestAction
         # util.raiseNotDefined()
