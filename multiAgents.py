@@ -20,6 +20,7 @@ from game import Agent
 from pacman import GameState
 
 
+# Evaluates the score for Pacman agent
 def scoreEvaluationFunction(currentGameState: GameState):
     newPos = currentGameState.getPacmanPosition()
     newFood = currentGameState.getFood()
@@ -35,7 +36,7 @@ def scoreEvaluationFunction(currentGameState: GameState):
     if all(manhattanDistance(newPos, ghost) > 5 for ghost in newGhostPositions):
         distancesToFood = [manhattanDistance(newPos, food) for food in newFood]
         if distancesToFood:
-            score -= 1/(numFood * min(distancesToFood) + 1)
+            score -= 1 / (numFood * min(distancesToFood) + 1)
         else:
             score += 1000
 
