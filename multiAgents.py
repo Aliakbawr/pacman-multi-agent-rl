@@ -21,9 +21,24 @@ from pacman import GameState
 
 
 def scoreEvaluationFunction(currentGameState: GameState):
-    
+    newPos = currentGameState.getPacmanPosition()
+    newFood = currentGameState.getFood()
+    numFood = currentGameState.getNumFood()
+    newGhostPositions = currentGameState.getGhostPositions()
+    score = currentGameState.getScore()
 
-    return currentGameState.getScore()
+    # Run away from ghost
+    if min([manhattanDistance(newPos, ghost) for ghost in newGhostPositions]) < 3:
+        score -= 10
+
+    if all(manhattanDistance(newPos, ghost) > 5 for ghost in newGhostPositions):
+        distancesToFood = [manhattanDistance(newPos, food) for food in newFood]
+        if distancesToFood:
+            score -= 1/(numFood * min(distancesToFood) + 1)
+        else:
+            score += 1000
+
+    return score
 
 
 class MultiAgentSearchAgent(Agent):
@@ -36,47 +51,54 @@ class MultiAgentSearchAgent(Agent):
 
 
 class AIAgent(MultiAgentSearchAgent):
+    def maxValue(self, gameState: GameState, depth, agentIndex, alpha, beta):
+        if gameState.isWin() or gameState.isLose() or depth == self.depth:
+            return self.evaluationFunction(gameState)
+        value = -float("inf")
+        for action in gameState.getLegalActions(agentIndex):
+            value = max(value, self.minValue(gameState.generateSuccessor(agentIndex, action),
+                                             depth, agentIndex + 1, alpha, beta))
+            if value > beta:
+                return value
+            alpha = max(alpha, value)
+        return value
+
+    def minValue(self, gameState: GameState, depth, agentIndex, alpha, beta):
+        if gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
+        value = float("inf")
+        for action in gameState.getLegalActions(agentIndex):
+            if agentIndex == gameState.getNumAgents() - 1:
+                value = min(value, self.maxValue(gameState.generateSuccessor(agentIndex, action),
+                                                 depth + 1, 0, alpha, beta))
+            else:
+                value = min(value, self.minValue(gameState.generateSuccessor(agentIndex, action),
+                                                 depth, agentIndex + 1, alpha, beta))
+            if value < alpha:
+                return value
+            beta = min(beta, value)
+        return value
+
     def getAction(self, gameState: GameState):
-        def maxValue(gameState, depth, agentIndex, alpha, beta):
-            if gameState.isWin() or gameState.isLose() or depth == self.depth:
-                return self.evaluationFunction(gameState)
-            value = -float("inf")
-            for action in gameState.getLegalActions(agentIndex):
-                value = max(value, minValue(gameState.generateSuccessor(agentIndex, action),
-                                            depth, agentIndex + 1, alpha, beta))
-                if value > beta:
-                    return value
-                alpha = max(alpha, value)
-            return value
-
-        def minValue(gameState, depth, agentIndex, alpha, beta):
-            if gameState.isWin() or gameState.isLose():
-                return self.evaluationFunction(gameState)
-            value = float("inf")
-            for action in gameState.getLegalActions(agentIndex):
-                if agentIndex == gameState.getNumAgents() - 1:
-                    value = min(value, maxValue(gameState.generateSuccessor(agentIndex, action),
-                                                depth + 1, 0, alpha, beta))
-                else:
-                    value = min(value, minValue(gameState.generateSuccessor(agentIndex, action),
-                                                depth, agentIndex + 1, alpha, beta))
-                if value < alpha:
-                    return value
-                beta = min(beta, value)
-            return value
-
         alpha = -float("inf")
         beta = float("inf")
         bestScore = -float("inf")
-        bestAction = Directions.STOP
+        bestActions = []  # This will hold all the best actions
+
         for action in gameState.getLegalActions(0):
-            pacmanValue = maxValue(gameState.generateSuccessor(0, action), 0, 0, alpha, beta)
+            pacmanValue = self.maxValue(gameState.generateSuccessor(0, action), 0, 0, alpha, beta)
             print(f'action = {action}   value = {pacmanValue}')
+            if action == Directions.STOP:
+                pacmanValue -= 4
             if pacmanValue > bestScore:
                 bestScore = pacmanValue
-                bestAction = action
+                bestActions = [action]  # Start a new list of best actions
+            elif pacmanValue == bestScore:
+                bestActions.append(action)  # Add action to the list of best actions
             if bestScore > beta:
-                return bestAction
+                return random.choice(bestActions)  # Choose randomly among the best actions
             alpha = max(alpha, bestScore)
-        return bestAction
+
+        return random.choice(bestActions)  # Choose randomly among the best actions
+
         # util.raiseNotDefined()
